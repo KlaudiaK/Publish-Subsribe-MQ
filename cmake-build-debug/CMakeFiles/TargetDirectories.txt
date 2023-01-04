@@ -1,0 +1,3 @@
+/Users/michal/CLionProjects/Publish-Subsribe-MQ/cmake-build-debug/CMakeFiles/Publish_Subsribe_MQ.dir
+/Users/michal/CLionProjects/Publish-Subsribe-MQ/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/michal/CLionProjects/Publish-Subsribe-MQ/cmake-build-debug/CMakeFiles/rebuild_cache.dir

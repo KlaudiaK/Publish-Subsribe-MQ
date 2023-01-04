@@ -8,16 +8,33 @@
 #include <netdb.h>
 #include <thread>
 #include <atomic>
-#include <set>
-#include <sys/poll.h>
+#include <iostream>
+
+using namespace std;
+
+// CLIENT INSTANCE
+// DEFINE YOUR OWN PARAMETERS BELOW
+// MESSAGE PATTERN [TAG] Message
+// SYSTEM TAGS:
+//      [LOGIN]
+//      [LOGOUT]
+//      [TOPICS]
+//      [SUB]
+//      [UNSUB]
+//      [HEARTBEAT]
+//      every message sent with a different tag will add a message to the topic or create a new one.
+
+const string HEARTBEAT = "[HEARTBEAT]";
+#define HEARTBEAT_MSG_TIME 2000
+clock_t start = clock();
 
 int sock;
-
-std::atomic<bool> quit{false};
+atomic<bool> quit{false};
 
 void ctrl_c(int) {
     quit = true;
     shutdown(sock, SHUT_RDWR);
+    exit(1);
 }
 
 void connectToHost(const char * host, const char * port) {
@@ -37,14 +54,15 @@ void connectToHost(const char * host, const char * port) {
 
 void doWork() {
     while (!quit) {
-        char buf[255];
+        char buf[255] = "";
         char message[256];
-        scanf("%s", message);
-        // na końcu każdej wiadomości jest wysyłany dodatkowo znak nowej linii
-        sprintf(buf, "command: %s\n", message);
+        //fgets adds \n
+        ::fgets(message, 256, stdin);
+        ::strcat(buf, message);
         if ((int) strlen(buf) != write(sock, buf, strlen(buf))) {
             return;
         } else {
+            start = clock();
             continue;
         }
     }
@@ -69,8 +87,8 @@ void doRead() {
                 while (nullptr != (eol = strchr(buf, '\n'))) {
 
                     // wykonaj komendę
-                    printf(buf);
-
+                    cout << buf << endl;
+                    start = clock();
                     // usuń komendę z bufora
 
                     // (pomocnicze) wylicz długość komendy
@@ -91,6 +109,21 @@ void doRead() {
     }
 }
 
+void doHeartbeat() {
+    while (!quit) {
+        if ((float) (::clock() - start) / 1000 > HEARTBEAT_MSG_TIME) {
+            char buf[255] = "";
+            ::strcat(buf, HEARTBEAT.c_str());
+            ::strcat(buf, "\n");
+            if ((int) strlen(buf) != write(sock, buf, strlen(buf))) {
+                return;
+            } else {
+                start = clock();
+            }
+        }
+    }
+}
+
 int main(int argc, char ** argv) {
     if(argc !=3) {
         fprintf(stderr, "Usage:\n%s <ip> <port>\n", argv[0]);
@@ -103,17 +136,23 @@ int main(int argc, char ** argv) {
     fflush(stdout);
     fflush(stdin);
 
-    std::thread threads[9];
+    thread threads[9];
     for(auto &t : threads)
-        t = std::thread(doWork);
-    std::thread threads_read[9];
+        t = thread(doWork);
+    thread threads_read[9];
     for(auto &t : threads_read)
-        t = std::thread(doRead);
+        t = thread(doRead);
+    thread heartbeat[1];
+    for(auto &t : heartbeat)
+        t = thread(doRead);
+    doHeartbeat();
     doWork();
     doRead();
     for(auto &t : threads)
         t.join();
     for(auto &t : threads_read)
+        t.join();
+    for(auto &t : heartbeat)
         t.join();
 
 
