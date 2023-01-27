@@ -84,6 +84,8 @@ uint16_t readPort(char * txt);
 void setReuseAddr(int sock);
 
 void eventOnServFd(int revents) {
+    fflush(stdout);
+    fflush(stdin);
     // Wszystko co nie jest POLLIN na gnieździe nasłuchującym jest traktowane
     // jako błąd wyłączający aplikację
     if(revents & ~POLLIN){
@@ -113,6 +115,8 @@ void eventOnServFd(int revents) {
                    clientFd);
         }
     }
+    fflush(stdout);
+    fflush(stdin);
 }
 
 void eventOnClientFd(int indexInDescr) {
@@ -120,6 +124,8 @@ void eventOnClientFd(int indexInDescr) {
     auto revents = descr[indexInDescr].revents;
 
     if(revents & POLLIN){
+        fflush(stdout);
+        fflush(stdin);
         char buf[255], *eol;
         int pos{0};
         // dane z sieci zapisz do bufora, zaczynając od miejsca za wcześniej zapisanymi danymi
@@ -180,6 +186,7 @@ void eventOnClientFd(int indexInDescr) {
                 pos -= cmdLen;
 
                 fflush(stdout);
+                fflush(stdin);
             }
 
             // jeżeli w 255 znakach nie ma '\n', wyjdź.
@@ -310,6 +317,7 @@ void sendToAllButWithinTopic(int fd, char * buffer, int count, string topic){
         }
 
         if (std::find(subscribed[clientFd].begin(), subscribed[clientFd].end(), topic) != subscribed[clientFd].end()) {
+            cout << "Sending message to " << clientFd << endl;
             int res = write(clientFd, buffer, count);
             if (res != count) {
                 printf("removing %d\n", clientFd);
@@ -425,7 +433,10 @@ void removeTopic(string topic) {
 
 pair<string, string> splitMessage(string message) {
     int index = message.find_first_of("]");
-    return pair<string, string>(message.substr(0, index + 1), message.substr(index + 1));
+    pair<string, string> split1 = pair<string, string>(message.substr(0, index + 1), message.substr(index + 1));
+    string start = split1.first;
+    int index2 = start.find_last_of("[");
+    return pair<string, string>(start.substr(index2), message.substr(index + 1));
 }
 
 bool checkSystemTag(string tag){
@@ -439,12 +450,15 @@ bool checkSystemTag(string tag){
 }
 
 void displayTopics(int fd) {
+    char buf[255] = "";
     for (int i = 0; i < topics.size(); ++i) {
-        char buf[255] = "";
         ::strcat(buf, topics[i].c_str());
-        ::strcat(buf, "\n");
-        sendToFd(fd, buf, 100);
+        if (i < topics.size() - 1) {
+            ::strcat(buf, " | ");
+        }
     }
+    ::strcat(buf, "\n");
+    sendToFd(fd, buf, sizeof (buf));
 }
 
 void tryLogInUserWithDescriptor(int fd, string key) {

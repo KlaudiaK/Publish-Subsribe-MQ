@@ -54,6 +54,8 @@ void connectToHost(const char * host, const char * port) {
 
 void doWork() {
     while (!quit) {
+        fflush(stdout);
+        fflush(stdin);
         char buf[255] = "";
         char message[256];
         //fgets adds \n
@@ -62,6 +64,8 @@ void doWork() {
         if ((int) strlen(buf) != write(sock, buf, strlen(buf))) {
             return;
         } else {
+            fflush(stdout);
+            fflush(stdin);
             start = clock();
             continue;
         }
@@ -71,6 +75,7 @@ void doWork() {
 void doRead() {
 
     while (!quit) {
+        cin.clear();
         char buf[255], *eol;
         int pos{0};
         while(true) {
@@ -99,11 +104,13 @@ void doRead() {
                     pos -= cmdLen;
 
                     fflush(stdout);
+                    fflush(stdin);
                 }
 
                 // jeżeli w 255 znakach nie ma '\n', wyjdź.
-                if (pos == 255)
+                if (pos == 255) {
                     break;
+                }
             }
         }
     }
