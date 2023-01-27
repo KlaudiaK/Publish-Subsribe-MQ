@@ -433,9 +433,15 @@ void removeTopic(string topic) {
 
 pair<string, string> splitMessage(string message) {
     int index = message.find_first_of("]");
+    if(index == std::string::npos) {
+        return pair<string, string>("", "");
+    }
     pair<string, string> split1 = pair<string, string>(message.substr(0, index + 1), message.substr(index + 1));
     string start = split1.first;
     int index2 = start.find_last_of("[");
+    if(index2 == std::string::npos) {
+        return pair<string, string>("", "");
+    }
     return pair<string, string>(start.substr(index2), message.substr(index + 1));
 }
 
